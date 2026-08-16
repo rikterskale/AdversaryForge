@@ -10,6 +10,7 @@ const toast = document.querySelector('#toast');
 let latestArtifacts = null;
 let latestWorkflow = null;
 let latestVerification = null;
+let signedArtifact = false;
 
 const intakeQuestions = [
   {key:'name', label:'What should this tool be called?', hint:'Use a short name that describes the security-testing purpose.', type:'text', value:'DNS exposure mapper'},
@@ -62,7 +63,29 @@ function bindVerificationActions(){
   document.querySelectorAll('.record-check').forEach(button=>button.onclick=()=>{const result=recordVerificationResult(latestVerification,button.dataset.checkId,{status:'passed',evidence:[`${button.dataset.checkId}.json`]});if(result.ok){latestVerification=result.run;showView('verification');}});
 }
 
-function showView(name){app.innerHTML=name==='verification'?renderVerificationView():(views[name]||views.overview); breadcrumb.textContent=name[0].toUpperCase()+name.slice(1); document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name)); document.querySelectorAll('[data-view]').forEach(el=>el.onclick=()=>showView(el.dataset.view)); const btn=document.querySelector('#newEngagement'); if(btn) btn.onclick=openIntake; if(name==='verification') bindVerificationActions();}
+function renderDeliveryView(){
+  if(!latestWorkflow) return `<div class="hero"><div><p class="eyebrow">BUILD SYSTEM</p><h1>Delivery</h1><p>No active project workflow exists yet. Start a tool project to create one.</p></div><button class="primary" id="newEngagement">New tool project <span>＋</span></button></div><section class="panel empty-state"><strong>The delivery lifecycle starts after intake confirmation.</strong><small>Every transition requires its own evidence or human approval.</small></section>`;
+  const summary=latestVerification?summarizeVerification(latestVerification):{ready:false,passed:0,pending:0};
+  const actionByState={
+    'design-review':'<button class="primary workflow-action" data-workflow-action="approve-design">Approve design</button>',
+    implementation:'<button class="primary workflow-action" data-workflow-action="submit-verification">Submit for verification</button>',
+    verification:summary.ready?'<button class="primary workflow-action" data-workflow-action="verification-passed">Promote verification</button>':'<button class="outline" data-view="verification">Open verification checks →</button>',
+    documentation:'<button class="primary workflow-action" data-workflow-action="documentation-complete">Mark documentation complete</button>',
+    'release-approval':signedArtifact?'<button class="primary workflow-action" data-workflow-action="release-approved">Approve release</button>':'<button class="outline" id="signArtifact">Record signed artifact</button>',
+    released:'<span class="pill active">RELEASED</span>'
+  };
+  const milestones=['intake','design-review','implementation','verification','documentation','release-approval','released'];
+  const currentIndex=milestones.indexOf(latestWorkflow.state);
+  return `<div class="hero"><div><p class="eyebrow">BUILD SYSTEM · GUARDED DELIVERY</p><h1>Delivery</h1><p>${escapeHtml(latestWorkflow.projectName)} · transitions are recorded and approval-gated.</p></div><span class="pill ${latestWorkflow.state==='released'?'active':'review'}">${workflowLabel(latestWorkflow.state).toUpperCase()}</span></div><section class="panel"><div class="panel-head"><div><div class="panel-title">Lifecycle</div><div class="panel-sub">One controlled step at a time</div></div></div><div class="lifecycle">${milestones.map((state,index)=>`<div class="lifecycle-step ${index<currentIndex?'complete':''} ${index===currentIndex?'current':''}"><span>${index<currentIndex?'✓':index+1}</span><small>${workflowLabel(state)}</small></div>`).join('')}</div></section><section class="panel workflow-gate"><div class="panel-head"><div><div class="panel-title">Current gate</div><div class="panel-sub">${latestWorkflow.state==='verification'?`${summary.passed} checks passed · ${summary.pending} pending`:latestWorkflow.state==='release-approval'?(signedArtifact?'Signed artifact recorded':'Signed artifact required'):'Evidence and approval are required before the next transition.'}</div></div></div><div class="workflow-action-row">${actionByState[latestWorkflow.state]||'<span class="pill active">NO ACTION REQUIRED</span>'}</div></section>`;
+}
+
+function bindDeliveryActions(){
+  document.querySelectorAll('.workflow-action').forEach(button=>button.onclick=()=>{const action=button.dataset.workflowAction;const evidence=action==='approve-design'||action==='release-approved'?{humanApproved:true,...(action==='release-approved'?{signedArtifact}: {})}:action==='verification-passed'?{verificationReady:summarizeVerification(latestVerification).ready}:{ };const result=advanceWorkflow(latestWorkflow,action,evidence);if(result.ok){latestWorkflow=result.workflow;showView('delivery');}});
+  const sign=document.querySelector('#signArtifact'); if(sign) sign.onclick=()=>{signedArtifact=true;showView('delivery');};
+  document.querySelectorAll('[data-view]').forEach(el=>el.onclick=()=>showView(el.dataset.view));
+}
+
+function showView(name){app.innerHTML=name==='verification'?renderVerificationView():name==='delivery'?renderDeliveryView():(views[name]||views.overview); breadcrumb.textContent=name[0].toUpperCase()+name.slice(1); document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name)); document.querySelectorAll('[data-view]').forEach(el=>el.onclick=()=>showView(el.dataset.view)); const btn=document.querySelector('#newEngagement'); if(btn) btn.onclick=openIntake; if(name==='verification') bindVerificationActions(); if(name==='delivery') bindDeliveryActions();}
 showView('overview');
 document.querySelectorAll('.nav-item').forEach(n=>n.onclick=()=>showView(n.dataset.view));
 modal.onclick=e=>{if(e.target===modal) modal.classList.remove('open')};
