@@ -1,3 +1,5 @@
+import {createSandboxProfile} from './sandbox.js';
+
 const CHECK_IDS = Object.freeze(['static-analysis', 'unit-tests', 'negative-policy', 'sandbox-behavior', 'documentation']);
 
 function freezeCheck(check) {
@@ -9,6 +11,7 @@ export function createVerificationRun(project) {
   return Object.freeze({
     projectName: project.name,
     status: 'pending',
+    sandbox: createSandboxProfile(project.capability),
     checks: Object.freeze(CHECK_IDS.map(id => freezeCheck({id, status: 'pending', evidence: []})))
   });
 }

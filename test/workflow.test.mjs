@@ -4,6 +4,7 @@ import {advanceWorkflow, createWorkflow, workflowLabel} from '../src/workflow.js
 import {createVerificationRun, recordVerificationResult, summarizeVerification} from '../src/verification.js';
 import {appendAuditEvent, createAuditLog, summarizeAudit} from '../src/audit.js';
 import {createProvenanceManifest} from '../src/provenance.js';
+import {createSandboxProfile, validateSandboxProfile} from '../src/sandbox.js';
 
 const project = {name: 'Workflow test'};
 const approved = {allowed: true};
@@ -73,28 +74,29 @@ describe('workflow guards', () => {
 
 describe('fixture-first verification', () => {
   it('creates a pending verification run with required checks', () => {
-    let run = createVerificationRun({name: 'Verification test'});
+    let run = createVerificationRun({name: 'Verification test', capability: 'fixture'});
     assert.equal(run.status, 'pending');
+    assert.equal(run.sandbox.credentials, 'deny');
     assert.deepEqual(run.checks.map(check => check.id), ['static-analysis', 'unit-tests', 'negative-policy', 'sandbox-behavior', 'documentation']);
     assert.throws(() => createVerificationRun(), /project is required/);
   });
 
   it('records evidence and reaches a passed summary only when every check passes', () => {
-    let run = createVerificationRun({name: 'Verification test'});
+    let run = createVerificationRun({name: 'Verification test', capability: 'fixture'});
     for (const check of run.checks) run = recordVerificationResult(run, check.id, {status: 'passed', evidence: [`${check.id}.json`]}).run;
     assert.deepEqual(summarizeVerification(run), {status: 'passed', pending: 0, passed: 5, failed: 0, ready: true});
     assert.equal(Object.isFrozen(run), true);
   });
 
   it('records failures and preserves a reviewable run', () => {
-    let run = createVerificationRun({name: 'Verification test'});
+    let run = createVerificationRun({name: 'Verification test', capability: 'fixture'});
     run = recordVerificationResult(run, 'negative-policy', {status: 'failed', evidence: ['policy-failure.json']}).run;
     const summary = summarizeVerification(run);
     assert.deepEqual(summary, {status: 'failed', pending: 4, passed: 0, failed: 1, ready: false});
   });
 
   it('rejects unknown, duplicate, malformed, and evidence-free results', () => {
-    let run = createVerificationRun({name: 'Verification test'});
+    let run = createVerificationRun({name: 'Verification test', capability: 'fixture'});
     assert.deepEqual(recordVerificationResult(null, 'unit-tests', {}).reason, 'verification run is required');
     assert.match(recordVerificationResult(run, 'missing', {status: 'passed', evidence: ['x']}).reason, /unknown/);
     assert.equal(recordVerificationResult(run, 'unit-tests').reason, 'result status must be passed or failed');
@@ -102,6 +104,29 @@ describe('fixture-first verification', () => {
     assert.equal(recordVerificationResult(run, 'unit-tests', {status: 'passed', evidence: []}).reason, 'verification evidence is required');
     run = recordVerificationResult(run, 'unit-tests', {status: 'passed', evidence: ['unit.json']}).run;
     assert.equal(recordVerificationResult(run, 'unit-tests', {status: 'passed', evidence: ['again.json']}).reason, 'verification check is already recorded');
+  });
+});
+
+describe('sandbox profiles', () => {
+  it('creates safe defaults for fixture and isolated-network tiers', () => {
+    assert.equal(createSandboxProfile('fixture').network, 'deny');
+    assert.equal(createSandboxProfile('isolated-network').network, 'fixture-allowlist');
+    assert.equal(validateSandboxProfile(createSandboxProfile('analysis')).allowed, true);
+    assert.throws(() => createSandboxProfile('unrestricted'), /unsupported/);
+  });
+
+  it('rejects unsafe or malformed sandbox controls', () => {
+    const base = createSandboxProfile('fixture');
+    const invalid = (changes) => validateSandboxProfile({...base, ...changes});
+    assert.equal(validateSandboxProfile(null).allowed, false);
+    assert.match(invalid({network: 'internet'}).reasons[0], /network/);
+    assert.match(invalid({filesystem: {source: 'writeable', artifacts: 'write-only'}}).reasons[0], /source/);
+    assert.match(invalid({filesystem: {source: 'read-only', artifacts: 'read-write'}}).reasons[0], /artifacts/);
+    assert.match(invalid({credentials: 'available'}).reasons[0], /credentials/);
+    assert.match(invalid({process: 'allow'}).reasons[0], /process/);
+    assert.match(invalid({resources: {cpuSeconds: 0, memoryMb: 512}}).reasons[0], /cpu/);
+    assert.match(invalid({resources: {cpuSeconds: 30, memoryMb: 0}}).reasons[0], /memory/);
+    assert.equal(validateSandboxProfile({...base, resources: {cpuSeconds: 1.5, memoryMb: 512}}).allowed, false);
   });
 });
 

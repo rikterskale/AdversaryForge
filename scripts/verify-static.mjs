@@ -14,12 +14,13 @@ const requiredFiles = [
   'src/verification.js',
   'src/audit.js',
   'src/provenance.js',
+  'src/sandbox.js',
   'scripts/build-release.mjs',
   'test/release-readiness.test.mjs'
 ];
 const requiredMarkers = {
   'index.html': ['intakeModal', 'modal'],
-  'app.js': ['Add functionality', 'Proceed to design', 'Change answers', 'remove-feature', 'createProjectArtifacts', 'downloadArtifacts', 'Policy passed', 'Policy blocked', 'createWorkflow', 'advanceWorkflow', 'workflowLabel', 'Record fixture evidence', 'Verification checks', 'Approve design', 'Promote verification', 'Record signed artifact', 'appendAuditEvent', 'Recorded activity', 'createProvenanceManifest', 'Provenance manifest created'],
+  'app.js': ['Add functionality', 'Proceed to design', 'Change answers', 'remove-feature', 'createProjectArtifacts', 'downloadArtifacts', 'Policy passed', 'Policy blocked', 'createWorkflow', 'advanceWorkflow', 'workflowLabel', 'Record fixture evidence', 'Verification checks', 'Approve design', 'Promote verification', 'Record signed artifact', 'appendAuditEvent', 'Recorded activity', 'createProvenanceManifest', 'Provenance manifest created', 'Sandbox profile', 'SAFE DEFAULTS'],
   'README.md': ['npm test', 'Release readiness'],
   'docs/release-readiness.md': ['proven installation', 'guided troubleshooting', 'full-feature validation', 'tested recovery paths', 'documentation'],
   'docs/troubleshooting.md': ['Use **Back**', 'Add functionality', 'Proceed to design'],
