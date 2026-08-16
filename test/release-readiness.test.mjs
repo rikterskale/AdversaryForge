@@ -10,6 +10,34 @@ import {
   normalizeProjectInput,
   removeFeature
 } from '../src/release-readiness.js';
+import {createDryRunPlan, createSetupChecklist, getGuidance, getRecoveryGuide, readinessSummary} from '../src/guidance.js';
+
+describe('interactive guidance contracts', () => {
+  it('provides setup, topic fallback, and immutable checklist guidance', () => {
+    assert.equal(getGuidance('intake').title, 'Guided intake');
+    assert.equal(getGuidance('missing').title, 'Start here');
+    const checklist = createSetupChecklist();
+    assert.equal(checklist.length, 5);
+    assert.equal(Object.isFrozen(checklist), true);
+  });
+
+  it('creates safe dry-run previews and handles missing projects', () => {
+    assert.deepEqual(createDryRunPlan(), {allowed: false, reason: 'a project name is required', steps: []});
+    const plan = createDryRunPlan({name: 'Fixture mapper'});
+    assert.equal(plan.allowed, true);
+    assert.equal(plan.steps.length, 4);
+  });
+
+  it('explains recovery and summarizes incomplete or complete readiness', () => {
+    assert.match(getRecoveryGuide('empty'), /answer/);
+    assert.match(getRecoveryGuide('feature'), /feature/);
+    assert.match(getRecoveryGuide('verification'), /evidence/);
+    assert.match(getRecoveryGuide(), /previous step/);
+    assert.deepEqual(readinessSummary(null), {complete: false, completed: 0, total: 5});
+    const checklist = createSetupChecklist().map(check => ({...check, status: 'passed'}));
+    assert.deepEqual(readinessSummary(checklist), {complete: true, completed: 5, total: 5});
+  });
+});
 
 describe('feature editing', () => {
   it('adds trimmed features and avoids case-insensitive duplicates', () => {

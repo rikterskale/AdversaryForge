@@ -28,6 +28,19 @@ npm run verify
 - Review the control plane and active tool builds.
 - Move a tool through repository intake, threat modeling, implementation, verification, documentation, and release readiness.
 - Inspect reusable workflows, evidence-backed findings, policy gates, and append-only audit activity.
+
+## Guided GUI and CLI
+
+The MVP is interactive for new users: **Guided setup** and **Help center** explain each workflow, intake answers can be edited or recovered, and review includes a safe dry-run preview before anything is created. The terminal companion uses the same guidance:
+
+```powershell
+npm run forge -- setup
+npm run forge -- init
+npm run forge -- verify
+npm run forge -- release-check
+```
+
+The CLI wizard never contacts targets. It previews the plan, asks before proceeding, and keeps human approval required.
 - Keep action approval, immutable scope, and connector isolation visible as first-class product concepts.
 
 ## Safety boundary

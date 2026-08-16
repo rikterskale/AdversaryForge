@@ -8,6 +8,7 @@
     "test": "node --test --experimental-test-coverage --test-coverage-include=src/*.js --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100",
     "verify": "node scripts/verify-static.mjs && node scripts/verify-release-readiness.mjs",
     "build:release": "node scripts/build-release.mjs",
+    "forge": "node scripts/forge.mjs",
     "ci": "npm test && npm run verify"
   },
   "engines": {

@@ -29,3 +29,5 @@ Open `http://localhost:8080` and choose **Tool factory**. Start a project, answe
 ## Expected first-run result
 
 The browser should render the control plane, open the guided intake, preserve answers when going back, allow late feature additions from the review screen, and show a queued design request after explicit confirmation. The MVP does not execute scans, payloads, connectors, or live-target actions.
+
+For a terminal-first guided path, run `npm run forge -- setup`; use `npm run forge -- init` for the interactive intake and dry-run preview. `npm run forge -- release-check` prints the new-user release standard.
