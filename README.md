@@ -44,6 +44,8 @@ The first-class CI process lives in `.github/workflows/ci.yml`. It proves clean 
 
 The machine-readable [release-readiness goal](docs/release-readiness.json) defines the five required standards and keeps human approval separate from automated coverage.
 
+After both verification gates pass, CI builds a reproducible MVP release bundle containing the application, documentation, release manifest, SBOM, and checksums. The bundle is published as a workflow artifact and remains explicitly unsigned until a real signing key and internal registry are configured.
+
 See the [guided troubleshooting guide](docs/troubleshooting.md) for startup, verification, intake recovery, and failed-run recovery paths.
 
 Confirmed intake answers generate a repository-shaped [project artifact bundle](docs/project-artifacts.md) with a project manifest, threat model, capability declaration, acceptance criteria, and release-evidence checklist. The static MVP downloads the bundle as JSON; a production backend should commit the files to `projects/<slug>/` on an isolated branch.

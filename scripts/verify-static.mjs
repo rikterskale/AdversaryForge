@@ -14,6 +14,7 @@ const requiredFiles = [
   'src/verification.js',
   'src/audit.js',
   'src/provenance.js',
+  'scripts/build-release.mjs',
   'test/release-readiness.test.mjs'
 ];
 const requiredMarkers = {
@@ -23,7 +24,8 @@ const requiredMarkers = {
   'docs/release-readiness.md': ['proven installation', 'guided troubleshooting', 'full-feature validation', 'tested recovery paths', 'documentation'],
   'docs/troubleshooting.md': ['Use **Back**', 'Add functionality', 'Proceed to design'],
   'docs/project-artifacts.md': ['project.yaml', 'threat-model.md', 'capabilities.yaml', 'acceptance-criteria.md', 'verification-plan.md'],
-  'docs/release-readiness.json': ['coverageIsNotSufficient', 'humanApprovalRequired', 'featureValidation']
+  'docs/release-readiness.json': ['coverageIsNotSufficient', 'humanApprovalRequired', 'featureValidation'],
+  'scripts/build-release.mjs': ['release-manifest.json', 'sbom.json', 'checksums.txt', 'signed=${provenance.signed}']
 };
 
 for (const file of requiredFiles) await readFile(file, 'utf8');

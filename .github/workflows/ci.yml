@@ -96,3 +96,29 @@ jobs:
 
       - name: Report release decision
         run: echo "New-user release-readiness standard is present; human approval remains required for promotion."
+
+  release-artifact:
+    name: Build reproducible release artifact
+    needs: [verify, release-readiness]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install from lockfile
+        run: npm ci
+
+      - name: Build release bundle
+        run: npm run build:release
+
+      - name: Publish release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: adversaryforge-mvp-release-${{ github.sha }}
+          path: dist/adversaryforge-mvp
