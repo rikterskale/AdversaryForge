@@ -3,6 +3,8 @@ import { describe, it } from 'node:test';
 import {
   addFeature,
   createProjectArtifacts,
+  evaluatePolicy,
+  formatPolicyDecision,
   evaluateReleaseReadiness,
   formatReadinessSummary,
   normalizeProjectInput,
@@ -111,5 +113,32 @@ describe('repository project artifacts', () => {
     assert.equal(bundle.slug, 'security-tool');
     assert.equal(bundle.version, '0.1.0');
     assert.match(bundle.artifacts['release-evidence/README.md'], /Generated: pending-ci/);
+  });
+});
+
+describe('deny-by-default policy', () => {
+  const project = (capability) => ({name: 'Policy test', objective: 'Validate controls', boundary: 'Fixtures', capability, verification: 'Unit tests', features: ['Inspect']});
+
+  it('allows analysis and blocks unsafe universal capabilities', () => {
+    const allowed = evaluatePolicy(project('analysis'));
+    assert.equal(allowed.allowed, true);
+    assert.match(formatPolicyDecision(allowed), /Policy passed/);
+    const blocked = evaluatePolicy(project('analysis'), {credentialsRequested: true, persistenceRequested: true});
+    assert.equal(blocked.allowed, false);
+    assert.deepEqual(blocked.reasons, ['credential access is prohibited', 'persistence is prohibited']);
+    assert.match(formatPolicyDecision(blocked), /Policy blocked/);
+  });
+
+  it('requires sandboxing for fixture and isolated-network work', () => {
+    assert.deepEqual(evaluatePolicy(project('fixture'), {sandbox: false}).reasons, ['fixture execution requires a sandbox']);
+    assert.equal(evaluatePolicy(project('isolated-network'), {sandbox: true, approval: true}).allowed, true);
+    assert.deepEqual(evaluatePolicy(project('isolated-network'), {}).reasons, ['isolated network requires a sandbox', 'isolated network requires human approval']);
+  });
+
+  it('requires all approvals and allowlists for live interaction', () => {
+    const missing = evaluatePolicy(project('approved-live'), {});
+    assert.deepEqual(missing.reasons, ['live interaction requires human approval', 'live interaction requires attached authorization', 'target must be explicitly allowlisted', 'egress must be explicitly allowlisted']);
+    const approved = evaluatePolicy(project('approved-live'), {approval: true, authorizationAttached: true, targetAllowlisted: true, egressAllowlisted: true});
+    assert.equal(approved.allowed, true);
   });
 });

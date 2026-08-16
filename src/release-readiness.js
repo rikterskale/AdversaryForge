@@ -61,6 +61,29 @@ export function createProjectArtifacts(input, metadata = {}) {
   return Object.freeze({slug, version, artifacts: Object.freeze(artifacts)});
 }
 
+export function evaluatePolicy(input, context = {}) {
+  const project = normalizeProjectInput(input);
+  const reasons = [];
+  if (context.credentialsRequested === true) reasons.push('credential access is prohibited');
+  if (context.persistenceRequested === true) reasons.push('persistence is prohibited');
+  if (project.capability === 'fixture' && context.sandbox === false) reasons.push('fixture execution requires a sandbox');
+  if (project.capability === 'isolated-network') {
+    if (context.sandbox !== true) reasons.push('isolated network requires a sandbox');
+    if (context.approval !== true) reasons.push('isolated network requires human approval');
+  }
+  if (project.capability === 'approved-live') {
+    if (context.approval !== true) reasons.push('live interaction requires human approval');
+    if (context.authorizationAttached !== true) reasons.push('live interaction requires attached authorization');
+    if (context.targetAllowlisted !== true) reasons.push('target must be explicitly allowlisted');
+    if (context.egressAllowlisted !== true) reasons.push('egress must be explicitly allowlisted');
+  }
+  return Object.freeze({allowed: reasons.length === 0, tier: project.capability, reasons: Object.freeze(reasons)});
+}
+
+export function formatPolicyDecision(decision) {
+  return decision.allowed ? `Policy passed: ${decision.tier} is permitted under the current controls.` : `Policy blocked: ${decision.reasons.join('; ')}.`;
+}
+
 export function evaluateReleaseReadiness(checks) {
   const required = ['installation', 'troubleshooting', 'featureValidation', 'recovery', 'documentation'];
   const missing = required.filter(key => checks?.[key] !== true);
