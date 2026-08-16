@@ -3,6 +3,7 @@ import {describe, it} from 'node:test';
 import {advanceWorkflow, createWorkflow, workflowLabel} from '../src/workflow.js';
 import {createVerificationRun, recordVerificationResult, summarizeVerification} from '../src/verification.js';
 import {appendAuditEvent, createAuditLog, summarizeAudit} from '../src/audit.js';
+import {createProvenanceManifest} from '../src/provenance.js';
 
 const project = {name: 'Workflow test'};
 const approved = {allowed: true};
@@ -126,5 +127,26 @@ describe('append-only audit log', () => {
     assert.equal(next[0].at, 'pending');
     assert.deepEqual(summarizeAudit([]), {events: 0, types: {}, last: null});
     assert.throws(() => summarizeAudit(null), /audit log must be an array/);
+  });
+});
+
+describe('artifact provenance', () => {
+  it('creates SHA-256 hashes and SBOM entries for every artifact', async () => {
+    const manifest = await createProvenanceManifest({slug: 'dns-mapper', version: '0.1.0', artifacts: {'project.yaml': 'name: dns-mapper\n', 'README.md': '# DNS mapper\n'}}, {generatedAt: 'now', sourceCommit: 'abc123'});
+    assert.equal(manifest.format, 'adversaryforge-provenance-v1');
+    assert.equal(manifest.signed, false);
+    assert.equal(manifest.generatedAt, 'now');
+    assert.equal(manifest.sourceCommit, 'abc123');
+    assert.equal(manifest.artifacts.length, 2);
+    assert.match(manifest.artifacts[0].sha256, /^[a-f0-9]{64}$/);
+    assert.equal(manifest.sbom[1].type, 'generated-artifact');
+    assert.equal(Object.isFrozen(manifest), true);
+  });
+
+  it('uses safe metadata defaults and rejects malformed bundles', async () => {
+    const manifest = await createProvenanceManifest({slug: 'tool', version: '0.1.0', artifacts: {'a.txt': 'a'}});
+    assert.equal(manifest.generatedAt, 'pending-ci');
+    assert.equal(manifest.sourceCommit, 'pending-ci');
+    await assert.rejects(() => createProvenanceManifest(null), /artifact bundle is required/);
   });
 });
