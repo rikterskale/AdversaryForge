@@ -1,0 +1,15 @@
+{
+  "name": "adversaryforge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-assisted security-tool factory harness",
+  "type": "module",
+  "scripts": {
+    "test": "node --test --experimental-test-coverage --test-coverage-include=src/*.js --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100",
+    "verify": "node scripts/verify-static.mjs",
+    "ci": "npm test && npm run verify"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

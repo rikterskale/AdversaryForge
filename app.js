@@ -1,3 +1,5 @@
+import {addFeature, removeFeature, normalizeProjectInput} from './src/release-readiness.js';
+
 const app = document.querySelector('#app');
 const breadcrumb = document.querySelector('#breadcrumb');
 const modal = document.querySelector('#modal');
@@ -26,11 +28,11 @@ function renderIntake(){
   }
   document.querySelector('#closeModal').onclick=()=>modal.classList.remove('open');
   const back=document.querySelector('#intakeBack'); if(back) back.onclick=()=>{if(intakeState.step>0){intakeState.step--;renderIntake();}};
-  const addFeature=document.querySelector('#addFeature'); if(addFeature) addFeature.onclick=()=>{const input=document.querySelector('#featureInput');const value=input.value.trim();if(value){intakeState.answers.features.push(value);renderIntake();}};
-  document.querySelectorAll('.remove-feature').forEach(button=>button.onclick=()=>{intakeState.answers.features.splice(Number(button.dataset.featureIndex),1);renderIntake();});
+  const addFeatureButton=document.querySelector('#addFeature'); if(addFeatureButton) addFeatureButton.onclick=()=>{const input=document.querySelector('#featureInput');const value=input.value.trim();if(value){intakeState.answers.features=addFeature(intakeState.answers.features,value);renderIntake();}};
+  document.querySelectorAll('.remove-feature').forEach(button=>button.onclick=()=>{intakeState.answers.features=removeFeature(intakeState.answers.features,intakeState.answers.features[Number(button.dataset.featureIndex)]);renderIntake();});
   const next=document.querySelector('#intakeNext'); if(next) next.onclick=()=>{if(q.type==='features'){if(!intakeState.answers.features.length){document.querySelector('#featureInput').focus();return;}}else{intakeState.answers[q.key]=document.querySelector('#intakeAnswer').value.trim();if(!intakeState.answers[q.key]){document.querySelector('#intakeAnswer').focus();return;}}intakeState.step++;renderIntake();};
   const editFeatures=document.querySelector('#editFeatures'); if(editFeatures) editFeatures.onclick=()=>{intakeState.step=intakeQuestions.findIndex(question=>question.key==='features');renderIntake();};
-  const proceed=document.querySelector('#intakeProceed'); if(proceed) proceed.onclick=()=>{modal.classList.remove('open');toast.querySelector('strong').textContent='Design request queued';toast.querySelector('small').textContent='The harness will create a bounded plan for review.';toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),3800);};
+  const proceed=document.querySelector('#intakeProceed'); if(proceed) proceed.onclick=()=>{normalizeProjectInput(intakeState.answers);modal.classList.remove('open');toast.querySelector('strong').textContent='Design request queued';toast.querySelector('small').textContent='The harness will create a bounded plan for review.';toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),3800);};
 }
 function openIntake(){intakeState.step=0;renderIntake();modal.classList.add('open');}
 
