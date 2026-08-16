@@ -16,7 +16,7 @@ const requiredFiles = [
 ];
 const requiredMarkers = {
   'index.html': ['intakeModal', 'modal'],
-  'app.js': ['Add functionality', 'Proceed to design', 'Change answers', 'remove-feature', 'createProjectArtifacts', 'downloadArtifacts', 'Policy passed', 'Policy blocked', 'createWorkflow', 'advanceWorkflow', 'workflowLabel'],
+  'app.js': ['Add functionality', 'Proceed to design', 'Change answers', 'remove-feature', 'createProjectArtifacts', 'downloadArtifacts', 'Policy passed', 'Policy blocked', 'createWorkflow', 'advanceWorkflow', 'workflowLabel', 'Record fixture evidence', 'Verification checks'],
   'README.md': ['npm test', 'Release readiness'],
   'docs/release-readiness.md': ['proven installation', 'guided troubleshooting', 'full-feature validation', 'tested recovery paths', 'documentation'],
   'docs/troubleshooting.md': ['Use **Back**', 'Add functionality', 'Proceed to design'],
