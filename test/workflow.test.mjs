@@ -5,6 +5,7 @@ import {createVerificationRun, recordVerificationResult, summarizeVerification} 
 import {appendAuditEvent, createAuditLog, summarizeAudit} from '../src/audit.js';
 import {createProvenanceManifest} from '../src/provenance.js';
 import {createSandboxProfile, validateSandboxProfile} from '../src/sandbox.js';
+import {createFixturePlan} from '../src/fixture-runner.js';
 
 const project = {name: 'Workflow test'};
 const approved = {allowed: true};
@@ -77,6 +78,8 @@ describe('fixture-first verification', () => {
     let run = createVerificationRun({name: 'Verification test', capability: 'fixture'});
     assert.equal(run.status, 'pending');
     assert.equal(run.sandbox.credentials, 'deny');
+    assert.deepEqual(run.fixturePlan.command, ['node', 'fixtures/run-check.mjs']);
+    assert.equal(run.fixturePlan.execution, 'planned');
     assert.deepEqual(run.checks.map(check => check.id), ['static-analysis', 'unit-tests', 'negative-policy', 'sandbox-behavior', 'documentation']);
     assert.throws(() => createVerificationRun(), /project is required/);
   });
@@ -127,6 +130,16 @@ describe('sandbox profiles', () => {
     assert.match(invalid({resources: {cpuSeconds: 0, memoryMb: 512}}).reasons[0], /cpu/);
     assert.match(invalid({resources: {cpuSeconds: 30, memoryMb: 0}}).reasons[0], /memory/);
     assert.equal(validateSandboxProfile({...base, resources: {cpuSeconds: 1.5, memoryMb: 512}}).allowed, false);
+  });
+});
+
+describe('fixture execution plans', () => {
+  it('rejects missing, unsafe, empty, and malformed runs', () => {
+    assert.throws(() => createFixturePlan(), /verification run/);
+    const run = createVerificationRun({name: 'Plan test', capability: 'fixture'});
+    assert.throws(() => createFixturePlan({...run, sandbox: {...run.sandbox, credentials: 'available'}}), /unsafe sandbox/);
+    assert.throws(() => createFixturePlan({...run, checks: []}), /checks are required/);
+    assert.throws(() => createFixturePlan({...run, checks: [{status: 'pending'}]}), /check id/);
   });
 });
 

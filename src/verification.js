@@ -1,4 +1,5 @@
 import {createSandboxProfile} from './sandbox.js';
+import {createFixturePlan} from './fixture-runner.js';
 
 const CHECK_IDS = Object.freeze(['static-analysis', 'unit-tests', 'negative-policy', 'sandbox-behavior', 'documentation']);
 
@@ -8,12 +9,13 @@ function freezeCheck(check) {
 
 export function createVerificationRun(project) {
   if (!project?.name) throw new Error('project is required');
-  return Object.freeze({
+  const run = {
     projectName: project.name,
     status: 'pending',
     sandbox: createSandboxProfile(project.capability),
     checks: Object.freeze(CHECK_IDS.map(id => freezeCheck({id, status: 'pending', evidence: []})))
-  });
+  };
+  return Object.freeze({...run, fixturePlan: createFixturePlan(run)});
 }
 
 export function recordVerificationResult(run, checkId, result) {
@@ -25,7 +27,7 @@ export function recordVerificationResult(run, checkId, result) {
   if (!Array.isArray(result.evidence) || result.evidence.length === 0) return {ok: false, run, reason: 'verification evidence is required'};
   const checks = run.checks.map((check, current) => current === index ? freezeCheck({id: check.id, status: result.status, evidence: result.evidence}) : check);
   const status = checks.some(check => check.status === 'failed') ? 'failed' : checks.every(check => check.status === 'passed') ? 'passed' : 'pending';
-  return {ok: true, run: Object.freeze({projectName: run.projectName, status, checks: Object.freeze(checks)}), reason: null};
+  return {ok: true, run: Object.freeze({projectName: run.projectName, status, sandbox: run.sandbox, fixturePlan: run.fixturePlan, checks: Object.freeze(checks)}), reason: null};
 }
 
 export function summarizeVerification(run) {
