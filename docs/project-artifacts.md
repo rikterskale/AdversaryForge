@@ -8,6 +8,7 @@ projects/<slug>/
 ├── threat-model.md
 ├── capabilities.yaml
 ├── acceptance-criteria.md
+├── verification-plan.md
 └── release-evidence/
     └── README.md
 ```

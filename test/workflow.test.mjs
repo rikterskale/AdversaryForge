@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {describe, it} from 'node:test';
 import {advanceWorkflow, createWorkflow, workflowLabel} from '../src/workflow.js';
+import {createVerificationRun, recordVerificationResult, summarizeVerification} from '../src/verification.js';
 
 const project = {name: 'Workflow test'};
 const approved = {allowed: true};
@@ -65,5 +66,39 @@ describe('workflow guards', () => {
     docs = advanceWorkflow(docs, 'documentation-complete', {docsComplete: true}).workflow;
     assert.equal(advanceWorkflow(docs, 'release-approved').reason, 'human release approval is required');
     assert.equal(advanceWorkflow(docs, 'release-approved', {humanApproved: true}).reason, 'a signed artifact is required');
+  });
+});
+
+describe('fixture-first verification', () => {
+  it('creates a pending verification run with required checks', () => {
+    let run = createVerificationRun({name: 'Verification test'});
+    assert.equal(run.status, 'pending');
+    assert.deepEqual(run.checks.map(check => check.id), ['static-analysis', 'unit-tests', 'negative-policy', 'sandbox-behavior', 'documentation']);
+    assert.throws(() => createVerificationRun(), /project is required/);
+  });
+
+  it('records evidence and reaches a passed summary only when every check passes', () => {
+    let run = createVerificationRun({name: 'Verification test'});
+    for (const check of run.checks) run = recordVerificationResult(run, check.id, {status: 'passed', evidence: [`${check.id}.json`]}).run;
+    assert.deepEqual(summarizeVerification(run), {status: 'passed', pending: 0, passed: 5, failed: 0, ready: true});
+    assert.equal(Object.isFrozen(run), true);
+  });
+
+  it('records failures and preserves a reviewable run', () => {
+    let run = createVerificationRun({name: 'Verification test'});
+    run = recordVerificationResult(run, 'negative-policy', {status: 'failed', evidence: ['policy-failure.json']}).run;
+    const summary = summarizeVerification(run);
+    assert.deepEqual(summary, {status: 'failed', pending: 4, passed: 0, failed: 1, ready: false});
+  });
+
+  it('rejects unknown, duplicate, malformed, and evidence-free results', () => {
+    let run = createVerificationRun({name: 'Verification test'});
+    assert.deepEqual(recordVerificationResult(null, 'unit-tests', {}).reason, 'verification run is required');
+    assert.match(recordVerificationResult(run, 'missing', {status: 'passed', evidence: ['x']}).reason, /unknown/);
+    assert.equal(recordVerificationResult(run, 'unit-tests').reason, 'result status must be passed or failed');
+    assert.equal(recordVerificationResult(run, 'unit-tests', {status: 'skipped', evidence: ['x']}).reason, 'result status must be passed or failed');
+    assert.equal(recordVerificationResult(run, 'unit-tests', {status: 'passed', evidence: []}).reason, 'verification evidence is required');
+    run = recordVerificationResult(run, 'unit-tests', {status: 'passed', evidence: ['unit.json']}).run;
+    assert.equal(recordVerificationResult(run, 'unit-tests', {status: 'passed', evidence: ['again.json']}).reason, 'verification check is already recorded');
   });
 });

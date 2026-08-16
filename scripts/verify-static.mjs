@@ -11,6 +11,7 @@ const requiredFiles = [
   'app.js',
   'styles.css',
   'src/release-readiness.js',
+  'src/verification.js',
   'test/release-readiness.test.mjs'
 ];
 const requiredMarkers = {
@@ -19,7 +20,7 @@ const requiredMarkers = {
   'README.md': ['npm test', 'Release readiness'],
   'docs/release-readiness.md': ['proven installation', 'guided troubleshooting', 'full-feature validation', 'tested recovery paths', 'documentation'],
   'docs/troubleshooting.md': ['Use **Back**', 'Add functionality', 'Proceed to design'],
-  'docs/project-artifacts.md': ['project.yaml', 'threat-model.md', 'capabilities.yaml', 'acceptance-criteria.md'],
+  'docs/project-artifacts.md': ['project.yaml', 'threat-model.md', 'capabilities.yaml', 'acceptance-criteria.md', 'verification-plan.md'],
   'docs/release-readiness.json': ['coverageIsNotSufficient', 'humanApprovalRequired', 'featureValidation']
 };
 
