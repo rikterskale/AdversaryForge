@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {describe, it} from 'node:test';
 import {advanceWorkflow, createWorkflow, workflowLabel} from '../src/workflow.js';
 import {createVerificationRun, recordVerificationResult, summarizeVerification} from '../src/verification.js';
+import {appendAuditEvent, createAuditLog, summarizeAudit} from '../src/audit.js';
 
 const project = {name: 'Workflow test'};
 const approved = {allowed: true};
@@ -100,5 +101,30 @@ describe('fixture-first verification', () => {
     assert.equal(recordVerificationResult(run, 'unit-tests', {status: 'passed', evidence: []}).reason, 'verification evidence is required');
     run = recordVerificationResult(run, 'unit-tests', {status: 'passed', evidence: ['unit.json']}).run;
     assert.equal(recordVerificationResult(run, 'unit-tests', {status: 'passed', evidence: ['again.json']}).reason, 'verification check is already recorded');
+  });
+});
+
+describe('append-only audit log', () => {
+  it('records immutable ordered events and summarizes them', () => {
+    let log = createAuditLog();
+    log = appendAuditEvent(log, {type: 'intake.confirmed', actor: 'operator', at: '2026-08-16T00:00:00Z', details: {project: 'dns-mapper'}});
+    log = appendAuditEvent(log, {type: 'workflow.transition', actor: 'operator', details: {to: 'design-review'}});
+    const summary = summarizeAudit(log);
+    assert.equal(summary.events, 2);
+    assert.deepEqual(summary.types, {'intake.confirmed': 1, 'workflow.transition': 1});
+    assert.equal(summary.last.id, 'evt-2');
+    assert.equal(Object.isFrozen(log), true);
+    assert.throws(() => log.push('x'), TypeError);
+  });
+
+  it('rejects malformed logs and events while preserving defaults', () => {
+    assert.throws(() => appendAuditEvent(null, {}), /audit log must be an array/);
+    const log = createAuditLog();
+    assert.throws(() => appendAuditEvent(log, {actor: 'operator'}), /event type is required/);
+    assert.throws(() => appendAuditEvent(log, {type: 'x'}), /event actor is required/);
+    const next = appendAuditEvent(log, {type: 'x', actor: 'operator'});
+    assert.equal(next[0].at, 'pending');
+    assert.deepEqual(summarizeAudit([]), {events: 0, types: {}, last: null});
+    assert.throws(() => summarizeAudit(null), /audit log must be an array/);
   });
 });

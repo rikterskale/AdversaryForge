@@ -1,6 +1,7 @@
 import {addFeature, removeFeature, normalizeProjectInput, createProjectArtifacts, evaluatePolicy, formatPolicyDecision} from './src/release-readiness.js';
 import {createWorkflow, advanceWorkflow, workflowLabel} from './src/workflow.js';
 import {createVerificationRun, recordVerificationResult, summarizeVerification} from './src/verification.js';
+import {appendAuditEvent, createAuditLog, summarizeAudit} from './src/audit.js';
 
 const app = document.querySelector('#app');
 const breadcrumb = document.querySelector('#breadcrumb');
@@ -11,6 +12,9 @@ let latestArtifacts = null;
 let latestWorkflow = null;
 let latestVerification = null;
 let signedArtifact = false;
+let auditLog = createAuditLog();
+
+function addAudit(type, details={}){auditLog=appendAuditEvent(auditLog,{type,actor:'operator',at:new Date().toISOString(),details});}
 
 const intakeQuestions = [
   {key:'name', label:'What should this tool be called?', hint:'Use a short name that describes the security-testing purpose.', type:'text', value:'DNS exposure mapper'},
@@ -39,7 +43,7 @@ function renderIntake(){
   document.querySelectorAll('.remove-feature').forEach(button=>button.onclick=()=>{intakeState.answers.features=removeFeature(intakeState.answers.features,intakeState.answers.features[Number(button.dataset.featureIndex)]);renderIntake();});
   const next=document.querySelector('#intakeNext'); if(next) next.onclick=()=>{if(q.type==='features'){if(!intakeState.answers.features.length){document.querySelector('#featureInput').focus();return;}}else{intakeState.answers[q.key]=document.querySelector('#intakeAnswer').value.trim();if(!intakeState.answers[q.key]){document.querySelector('#intakeAnswer').focus();return;}}intakeState.step++;renderIntake();};
   const editFeatures=document.querySelector('#editFeatures'); if(editFeatures) editFeatures.onclick=()=>{intakeState.step=intakeQuestions.findIndex(question=>question.key==='features');renderIntake();};
-  const proceed=document.querySelector('#intakeProceed'); if(proceed) proceed.onclick=()=>{const project=normalizeProjectInput(intakeState.answers);const decision=evaluatePolicy(project,{sandbox:true,approval:true});if(!decision.allowed)return;latestArtifacts=createProjectArtifacts(project,{generatedAt:new Date().toISOString()});latestVerification=createVerificationRun(project);latestWorkflow=advanceWorkflow(createWorkflow(project,decision),'submit-design',{policyApproved:true}).workflow;modal.classList.remove('open');toast.querySelector('strong').textContent='Design review queued';toast.querySelector('small').textContent=`${workflowLabel(latestWorkflow.state)} is waiting for human approval. Verification plan created.`;document.querySelector('#downloadArtifacts').hidden=false;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),5200);};
+  const proceed=document.querySelector('#intakeProceed'); if(proceed) proceed.onclick=()=>{const project=normalizeProjectInput(intakeState.answers);const decision=evaluatePolicy(project,{sandbox:true,approval:true});if(!decision.allowed)return;latestArtifacts=createProjectArtifacts(project,{generatedAt:new Date().toISOString()});latestVerification=createVerificationRun(project);latestWorkflow=advanceWorkflow(createWorkflow(project,decision),'submit-design',{policyApproved:true}).workflow;addAudit('policy.passed',{tier:decision.tier});addAudit('intake.confirmed',{project:project.name,boundary:project.boundary});addAudit('artifact.generated',{files:Object.keys(latestArtifacts.artifacts).length});addAudit('workflow.transition',{from:'intake',to:latestWorkflow.state});modal.classList.remove('open');toast.querySelector('strong').textContent='Design review queued';toast.querySelector('small').textContent=`${workflowLabel(latestWorkflow.state)} is waiting for human approval. Verification plan created.`;document.querySelector('#downloadArtifacts').hidden=false;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),5200);};
 }
 function openIntake(){intakeState.step=0;renderIntake();modal.classList.add('open');}
 
@@ -60,7 +64,7 @@ function renderVerificationView(){
 }
 
 function bindVerificationActions(){
-  document.querySelectorAll('.record-check').forEach(button=>button.onclick=()=>{const result=recordVerificationResult(latestVerification,button.dataset.checkId,{status:'passed',evidence:[`${button.dataset.checkId}.json`]});if(result.ok){latestVerification=result.run;showView('verification');}});
+  document.querySelectorAll('.record-check').forEach(button=>button.onclick=()=>{const result=recordVerificationResult(latestVerification,button.dataset.checkId,{status:'passed',evidence:[`${button.dataset.checkId}.json`]});if(result.ok){latestVerification=result.run;addAudit('verification.evidence-recorded',{check:button.dataset.checkId,status:'passed'});showView('verification');}});
 }
 
 function renderDeliveryView(){
@@ -80,12 +84,18 @@ function renderDeliveryView(){
 }
 
 function bindDeliveryActions(){
-  document.querySelectorAll('.workflow-action').forEach(button=>button.onclick=()=>{const action=button.dataset.workflowAction;const evidence=action==='approve-design'||action==='release-approved'?{humanApproved:true,...(action==='release-approved'?{signedArtifact}: {})}:action==='verification-passed'?{verificationReady:summarizeVerification(latestVerification).ready}:{ };const result=advanceWorkflow(latestWorkflow,action,evidence);if(result.ok){latestWorkflow=result.workflow;showView('delivery');}});
-  const sign=document.querySelector('#signArtifact'); if(sign) sign.onclick=()=>{signedArtifact=true;showView('delivery');};
+  document.querySelectorAll('.workflow-action').forEach(button=>button.onclick=()=>{const action=button.dataset.workflowAction;const evidence=action==='approve-design'||action==='release-approved'?{humanApproved:true,...(action==='release-approved'?{signedArtifact}: {})}:action==='verification-passed'?{verificationReady:summarizeVerification(latestVerification).ready}:{ };const from=latestWorkflow.state;const result=advanceWorkflow(latestWorkflow,action,evidence);if(result.ok){latestWorkflow=result.workflow;addAudit('workflow.transition',{from,to:latestWorkflow.state,action});showView('delivery');}});
+  const sign=document.querySelector('#signArtifact'); if(sign) sign.onclick=()=>{signedArtifact=true;addAudit('artifact.signed',{project:latestWorkflow.projectName});showView('delivery');};
   document.querySelectorAll('[data-view]').forEach(el=>el.onclick=()=>showView(el.dataset.view));
 }
 
-function showView(name){app.innerHTML=name==='verification'?renderVerificationView():name==='delivery'?renderDeliveryView():(views[name]||views.overview); breadcrumb.textContent=name[0].toUpperCase()+name.slice(1); document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name)); document.querySelectorAll('[data-view]').forEach(el=>el.onclick=()=>showView(el.dataset.view)); const btn=document.querySelector('#newEngagement'); if(btn) btn.onclick=openIntake; if(name==='verification') bindVerificationActions(); if(name==='delivery') bindDeliveryActions();}
+function renderDynamicAuditView(){
+  if(!auditLog.length)return views.audit;
+  const summary=summarizeAudit(auditLog);
+  return `<div class="hero"><div><p class="eyebrow">ASSURANCE · APPEND-ONLY</p><h1>Audit trail</h1><p>${summary.events} recorded events · operator actions and automated gates.</p></div><span class="pill active">LIVE LOG</span></div><section class="panel"><div class="panel-head"><div><div class="panel-title">Recorded activity</div><div class="panel-sub">Events cannot be edited from the MVP UI</div></div></div><div class="audit-list">${auditLog.slice().reverse().map(event=>`<div class="audit-row"><span class="audit-sequence">${event.sequence}</span><div><strong>${escapeHtml(event.type)}</strong><small>${escapeHtml(event.actor)} · ${escapeHtml(event.at)}</small></div><span class="mono audit-detail">${escapeHtml(JSON.stringify(event.details))}</span></div>`).join('')}</div></section>`;
+}
+
+function showView(name){app.innerHTML=name==='verification'?renderVerificationView():name==='delivery'?renderDeliveryView():name==='audit'?renderDynamicAuditView():(views[name]||views.overview); breadcrumb.textContent=name[0].toUpperCase()+name.slice(1); document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name)); document.querySelectorAll('[data-view]').forEach(el=>el.onclick=()=>showView(el.dataset.view)); const btn=document.querySelector('#newEngagement'); if(btn) btn.onclick=openIntake; if(name==='verification') bindVerificationActions(); if(name==='delivery') bindDeliveryActions();}
 showView('overview');
 document.querySelectorAll('.nav-item').forEach(n=>n.onclick=()=>showView(n.dataset.view));
 modal.onclick=e=>{if(e.target===modal) modal.classList.remove('open')};
