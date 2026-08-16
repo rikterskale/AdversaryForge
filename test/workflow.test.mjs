@@ -19,7 +19,7 @@ describe('workflow lifecycle', () => {
       ['submit-design', {policyApproved: true}, 'design-review'],
       ['approve-design', {humanApproved: true}, 'implementation'],
       ['submit-verification', {}, 'verification'],
-      ['verification-passed', {testEvidence: true}, 'documentation'],
+      ['verification-passed', {verificationReady: true}, 'documentation'],
       ['documentation-complete', {docsComplete: true}, 'release-approval'],
       ['release-approved', {humanApproved: true, signedArtifact: true}, 'released']
     ];
@@ -57,11 +57,11 @@ describe('workflow guards', () => {
     assert.equal(advanceWorkflow(review, 'approve-design').reason, 'human design approval is required');
     review = advanceWorkflow(review, 'approve-design', {humanApproved: true}).workflow;
     let verification = advanceWorkflow(review, 'submit-verification').workflow;
-    assert.equal(advanceWorkflow(verification, 'verification-passed').reason, 'passing test evidence is required');
+    assert.equal(advanceWorkflow(verification, 'verification-passed').reason, 'a completed verification run is required');
     verification = advanceWorkflow(verification, 'verification-failed').workflow;
     assert.equal(verification.state, 'implementation');
     let docs = advanceWorkflow(verification, 'submit-verification').workflow;
-    docs = advanceWorkflow(docs, 'verification-passed', {testEvidence: true}).workflow;
+    docs = advanceWorkflow(docs, 'verification-passed', {verificationReady: true}).workflow;
     assert.equal(advanceWorkflow(docs, 'documentation-complete').reason, 'complete documentation is required');
     docs = advanceWorkflow(docs, 'documentation-complete', {docsComplete: true}).workflow;
     assert.equal(advanceWorkflow(docs, 'release-approved').reason, 'human release approval is required');

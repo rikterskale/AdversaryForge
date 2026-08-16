@@ -18,7 +18,7 @@ export function createWorkflow(project, policyDecision) {
 function guardReason(workflow, action, evidence) {
   if (action === 'submit-design' && evidence.policyApproved !== true) return 'policy approval is required';
   if (action === 'approve-design' && evidence.humanApproved !== true) return 'human design approval is required';
-  if (action === 'verification-passed' && evidence.testEvidence !== true) return 'passing test evidence is required';
+  if (action === 'verification-passed' && evidence.verificationReady !== true) return 'a completed verification run is required';
   if (action === 'documentation-complete' && evidence.docsComplete !== true) return 'complete documentation is required';
   if (action === 'release-approved' && evidence.humanApproved !== true) return 'human release approval is required';
   if (action === 'release-approved' && evidence.signedArtifact !== true) return 'a signed artifact is required';
