@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#09101b" />
+  <title>AdversaryForge — AI Security Testing Harness</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">AF</div><div><strong>Adversary<span>Forge</span></strong><small>SECURITY WORKBENCH</small></div></div>
+      <div class="workspace-switcher"><span class="status-dot"></span><div><small>ACTIVE WORKSPACE</small><strong>Northstar Labs</strong></div><span class="chevron">⌄</span></div>
+      <nav class="nav">
+        <p class="nav-label">BUILD SYSTEM</p>
+        <button class="nav-item active" data-view="overview"><span class="nav-icon">◈</span>Control plane</button>
+        <button class="nav-item" data-view="factory"><span class="nav-icon">✦</span>Tool factory</button>
+        <button class="nav-item" data-view="engagements"><span class="nav-icon">◎</span>Projects <em>3</em></button>
+        <button class="nav-item" data-view="playbooks"><span class="nav-icon">◇</span>Workflows</button>
+        <p class="nav-label second">ASSURANCE</p>
+        <button class="nav-item" data-view="findings"><span class="nav-icon">△</span>Evidence <em class="alert-count">5</em></button>
+        <button class="nav-item" data-view="controls"><span class="nav-icon">✓</span>Policy gates</button>
+        <button class="nav-item" data-view="audit"><span class="nav-icon">≡</span>Audit trail</button>
+      </nav>
+      <div class="sidebar-bottom"><div class="safe-card"><div class="safe-icon">✓</div><div><strong>Safety controls active</strong><small>All actions are scoped & logged</small></div></div><div class="user-row"><div class="avatar">TS</div><div><strong>Taylor Saxon</strong><small>Administrator</small></div><span>•••</span></div></div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar"><div class="breadcrumbs"><span>Northstar Labs</span><b>/</b><strong id="breadcrumb">Overview</strong></div><div class="top-actions"><div class="command-hint"><span>⌘</span> K <small>Command menu</small></div><button class="icon-btn" aria-label="Notifications">♧<i></i></button><div class="top-avatar">TS</div></div></header>
+      <div class="page" id="app"></div>
+    </main>
+  </div>
+  <div class="toast" id="toast"><span>✓</span><div><strong>Run queued</strong><small>Your plan is waiting for approval.</small></div></div>
+  <div class="modal-backdrop" id="modal"><section class="modal" id="intakeModal"><button class="close-modal" id="closeModal">×</button></section></div>
+  <script src="app.js"></script>
+</body>
+</html>
