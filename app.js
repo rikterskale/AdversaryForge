@@ -1,4 +1,5 @@
 import {addFeature, removeFeature, normalizeProjectInput, createProjectArtifacts, evaluatePolicy, formatPolicyDecision} from './src/release-readiness.js';
+import {createWorkflow, advanceWorkflow, workflowLabel} from './src/workflow.js';
 
 const app = document.querySelector('#app');
 const breadcrumb = document.querySelector('#breadcrumb');
@@ -6,6 +7,7 @@ const modal = document.querySelector('#modal');
 const intakeModal = document.querySelector('#intakeModal');
 const toast = document.querySelector('#toast');
 let latestArtifacts = null;
+let latestWorkflow = null;
 
 const intakeQuestions = [
   {key:'name', label:'What should this tool be called?', hint:'Use a short name that describes the security-testing purpose.', type:'text', value:'DNS exposure mapper'},
@@ -34,7 +36,7 @@ function renderIntake(){
   document.querySelectorAll('.remove-feature').forEach(button=>button.onclick=()=>{intakeState.answers.features=removeFeature(intakeState.answers.features,intakeState.answers.features[Number(button.dataset.featureIndex)]);renderIntake();});
   const next=document.querySelector('#intakeNext'); if(next) next.onclick=()=>{if(q.type==='features'){if(!intakeState.answers.features.length){document.querySelector('#featureInput').focus();return;}}else{intakeState.answers[q.key]=document.querySelector('#intakeAnswer').value.trim();if(!intakeState.answers[q.key]){document.querySelector('#intakeAnswer').focus();return;}}intakeState.step++;renderIntake();};
   const editFeatures=document.querySelector('#editFeatures'); if(editFeatures) editFeatures.onclick=()=>{intakeState.step=intakeQuestions.findIndex(question=>question.key==='features');renderIntake();};
-  const proceed=document.querySelector('#intakeProceed'); if(proceed) proceed.onclick=()=>{const project=normalizeProjectInput(intakeState.answers);const decision=evaluatePolicy(project,{sandbox:true,approval:true});if(!decision.allowed)return;latestArtifacts=createProjectArtifacts(project,{generatedAt:new Date().toISOString()});modal.classList.remove('open');toast.querySelector('strong').textContent='Project artifacts generated';toast.querySelector('small').textContent=`${Object.keys(latestArtifacts.artifacts).length} repository files are ready to download.`;document.querySelector('#downloadArtifacts').hidden=false;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),5200);};
+  const proceed=document.querySelector('#intakeProceed'); if(proceed) proceed.onclick=()=>{const project=normalizeProjectInput(intakeState.answers);const decision=evaluatePolicy(project,{sandbox:true,approval:true});if(!decision.allowed)return;latestArtifacts=createProjectArtifacts(project,{generatedAt:new Date().toISOString()});latestWorkflow=advanceWorkflow(createWorkflow(project,decision),'submit-design',{policyApproved:true}).workflow;modal.classList.remove('open');toast.querySelector('strong').textContent='Design review queued';toast.querySelector('small').textContent=`${workflowLabel(latestWorkflow.state)} is waiting for human approval.`;document.querySelector('#downloadArtifacts').hidden=false;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),5200);};
 }
 function openIntake(){intakeState.step=0;renderIntake();modal.classList.add('open');}
 
