@@ -1,0 +1,32 @@
+{
+  "goal": "A new user can install, understand, exercise, recover, and safely use the MVP without relying on tribal knowledge.",
+  "coverageIsNotSufficient": true,
+  "humanApprovalRequired": true,
+  "standards": [
+    {
+      "id": "installation",
+      "name": "Proven installation",
+      "evidence": ["clean checkout", "runtime version check", "documented startup", "guided intake reachable"]
+    },
+    {
+      "id": "troubleshooting",
+      "name": "Guided troubleshooting",
+      "evidence": ["startup failure guidance", "port/browser guidance", "verification failure guidance", "clean rerun guidance"]
+    },
+    {
+      "id": "featureValidation",
+      "name": "Full-feature validation",
+      "evidence": ["every intake question exercised", "feature add/remove/review", "back navigation", "explicit confirmation"]
+    },
+    {
+      "id": "recovery",
+      "name": "Tested recovery paths",
+      "evidence": ["empty answer recovery", "review edit recovery", "mistaken feature replacement", "failed verification review state"]
+    },
+    {
+      "id": "documentation",
+      "name": "Documentation",
+      "evidence": ["installation", "safety boundary", "known limitations", "release evidence and troubleshooting"]
+    }
+  ]
+}

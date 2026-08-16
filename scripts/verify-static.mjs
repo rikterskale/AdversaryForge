@@ -5,6 +5,7 @@ const requiredFiles = [
   'INSTALLATION.md',
   'docs/troubleshooting.md',
   'docs/project-artifacts.md',
+  'docs/release-readiness.json',
   'docs/release-readiness.md',
   'index.html',
   'app.js',
@@ -18,7 +19,8 @@ const requiredMarkers = {
   'README.md': ['npm test', 'Release readiness'],
   'docs/release-readiness.md': ['proven installation', 'guided troubleshooting', 'full-feature validation', 'tested recovery paths', 'documentation'],
   'docs/troubleshooting.md': ['Use **Back**', 'Add functionality', 'Proceed to design'],
-  'docs/project-artifacts.md': ['project.yaml', 'threat-model.md', 'capabilities.yaml', 'acceptance-criteria.md']
+  'docs/project-artifacts.md': ['project.yaml', 'threat-model.md', 'capabilities.yaml', 'acceptance-criteria.md'],
+  'docs/release-readiness.json': ['coverageIsNotSufficient', 'humanApprovalRequired', 'featureValidation']
 };
 
 for (const file of requiredFiles) await readFile(file, 'utf8');

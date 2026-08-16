@@ -33,6 +33,9 @@ jobs:
           npm --version
           python3 --version
 
+      - name: Install from lockfile
+        run: npm ci
+
       - name: Run 100% coverage test gate
         run: npm test
 
@@ -57,6 +60,8 @@ jobs:
             INSTALLATION.md
             docs/troubleshooting.md
             docs/release-readiness.md
+            docs/release-readiness.json
+            docs/project-artifacts.md
             README.md
 
   release-readiness:
@@ -68,6 +73,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install from lockfile
+        run: npm ci
+
       - name: Check release standard is present
         run: |
           test -f INSTALLATION.md
@@ -77,6 +90,9 @@ jobs:
           grep -qi "full-feature validation" docs/release-readiness.md
           grep -qi "tested recovery paths" docs/release-readiness.md
           grep -qi "documentation" docs/release-readiness.md
+
+      - name: Validate machine-readable readiness goal
+        run: node scripts/verify-release-readiness.mjs
 
       - name: Report release decision
         run: echo "New-user release-readiness standard is present; human approval remains required for promotion."

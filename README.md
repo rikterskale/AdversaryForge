@@ -42,6 +42,8 @@ The next backend should expose four deliberately separate services: a context/in
 
 The first-class CI process lives in `.github/workflows/ci.yml`. It proves clean installation prerequisites, enforces 100% coverage for the tested core, validates the static product contract, starts the documented local server, and publishes release evidence. The separate [new-user release-readiness standard](docs/release-readiness.md) requires proven installation, guided troubleshooting, full-feature validation, tested recovery paths, and documentation—not merely a coverage threshold.
 
+The machine-readable [release-readiness goal](docs/release-readiness.json) defines the five required standards and keeps human approval separate from automated coverage.
+
 See the [guided troubleshooting guide](docs/troubleshooting.md) for startup, verification, intake recovery, and failed-run recovery paths.
 
 Confirmed intake answers generate a repository-shaped [project artifact bundle](docs/project-artifacts.md) with a project manifest, threat model, capability declaration, acceptance criteria, and release-evidence checklist. The static MVP downloads the bundle as JSON; a production backend should commit the files to `projects/<slug>/` on an isolated branch.
