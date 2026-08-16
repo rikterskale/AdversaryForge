@@ -1,5 +1,9 @@
 const CAPABILITY_TIERS = new Set(['analysis', 'fixture', 'isolated-network', 'approved-live']);
 
+function slugify(value) {
+  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'security-tool';
+}
+
 export function addFeature(features, feature) {
   if (!Array.isArray(features)) throw new TypeError('features must be an array');
   const value = String(feature ?? '').trim();
@@ -30,6 +34,31 @@ export function normalizeProjectInput(input) {
     verification: value.verification.trim(),
     features: Object.freeze(features)
   });
+}
+
+export function createProjectArtifacts(input, metadata = {}) {
+  const project = normalizeProjectInput(input);
+  const slug = slugify(project.name);
+  const version = metadata.version ?? '0.1.0';
+  const generatedAt = metadata.generatedAt ?? 'pending-ci';
+  const projectYaml = [
+    `name: ${JSON.stringify(project.name)}`,
+    `version: ${JSON.stringify(version)}`,
+    `objective: ${JSON.stringify(project.objective)}`,
+    `boundary: ${JSON.stringify(project.boundary)}`,
+    `capability_tier: ${project.capability}`,
+    'features:',
+    ...project.features.map(feature => `  - ${JSON.stringify(feature)}`),
+    `verification: ${JSON.stringify(project.verification)}`
+  ].join('\n') + '\n';
+  const artifacts = {
+    'project.yaml': projectYaml,
+    'threat-model.md': `# Threat model: ${project.name}\n\n## Intended outcome\n\n${project.objective}\n\n## Authorized boundary\n\n${project.boundary}\n\n## Out of scope\n\n- Credential collection or use\n- Unrestricted network access\n- Persistence or evasion\n- Live-target activity without explicit approval\n\n## Review status\n\nDesign review required before implementation.\n`,
+    'capabilities.yaml': `tool: ${JSON.stringify(project.name)}\ncapability_tier: ${project.capability}\nnetwork:\n  default: deny\nfilesystem:\n  default: fixture-only\ncredentials: none\nprocess_spawn: false\nhuman_approval_required: true\n`,
+    'acceptance-criteria.md': `# Acceptance criteria: ${project.name}\n\n${project.features.map(feature => `- [ ] ${feature}`).join('\n')}\n- [ ] Negative tests cover out-of-scope behavior\n- [ ] Evidence is generated in CI\n- [ ] Documentation matches the approved capability manifest\n`,
+    'release-evidence/README.md': `# Release evidence\n\nProject: ${project.name}\nGenerated: ${generatedAt}\n\nRequired before promotion:\n\n- [ ] Installation proven from a clean checkout\n- [ ] Guided troubleshooting verified\n- [ ] Full feature validation passed\n- [ ] Recovery paths tested\n- [ ] Documentation reviewed\n- [ ] Human release approval recorded\n`
+  };
+  return Object.freeze({slug, version, artifacts: Object.freeze(artifacts)});
 }
 
 export function evaluateReleaseReadiness(checks) {

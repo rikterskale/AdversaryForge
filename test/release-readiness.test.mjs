@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   addFeature,
+  createProjectArtifacts,
   evaluateReleaseReadiness,
   formatReadinessSummary,
   normalizeProjectInput,
@@ -80,5 +81,35 @@ describe('new-user release readiness', () => {
     assert.equal(result.ready, true);
     assert.equal(formatReadinessSummary(result), 'Release ready: all new-user readiness checks passed.');
     assert.throws(() => result.missing.push('x'), TypeError);
+  });
+});
+
+describe('repository project artifacts', () => {
+  it('creates a reviewable artifact bundle from approved intake', () => {
+    const bundle = createProjectArtifacts({
+      name: ' DNS Exposure Mapper ',
+      objective: 'Find records',
+      boundary: 'Fixture targets only',
+      capability: 'fixture',
+      verification: 'Fixture tests',
+      features: ['Resolve DNS', 'Export evidence']
+    }, {version: '0.2.0', generatedAt: '2026-08-16T13:00:00Z'});
+    assert.equal(bundle.slug, 'dns-exposure-mapper');
+    assert.equal(bundle.version, '0.2.0');
+    assert.match(bundle.artifacts['project.yaml'], /capability_tier: fixture/);
+    assert.match(bundle.artifacts['threat-model.md'], /Live-target activity/);
+    assert.match(bundle.artifacts['capabilities.yaml'], /default: deny/);
+    assert.match(bundle.artifacts['acceptance-criteria.md'], /Resolve DNS/);
+    assert.match(bundle.artifacts['release-evidence/README.md'], /Human release approval/);
+    assert.equal(Object.isFrozen(bundle), true);
+  });
+
+  it('uses safe defaults for missing metadata and names', () => {
+    const bundle = createProjectArtifacts({
+      name: '!!!', objective: 'Test', boundary: 'Fixtures', capability: 'analysis', verification: 'Unit tests', features: ['Inspect']
+    });
+    assert.equal(bundle.slug, 'security-tool');
+    assert.equal(bundle.version, '0.1.0');
+    assert.match(bundle.artifacts['release-evidence/README.md'], /Generated: pending-ci/);
   });
 });

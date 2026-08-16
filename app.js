@@ -1,10 +1,11 @@
-import {addFeature, removeFeature, normalizeProjectInput} from './src/release-readiness.js';
+import {addFeature, removeFeature, normalizeProjectInput, createProjectArtifacts} from './src/release-readiness.js';
 
 const app = document.querySelector('#app');
 const breadcrumb = document.querySelector('#breadcrumb');
 const modal = document.querySelector('#modal');
 const intakeModal = document.querySelector('#intakeModal');
 const toast = document.querySelector('#toast');
+let latestArtifacts = null;
 
 const intakeQuestions = [
   {key:'name', label:'What should this tool be called?', hint:'Use a short name that describes the security-testing purpose.', type:'text', value:'DNS exposure mapper'},
@@ -32,7 +33,7 @@ function renderIntake(){
   document.querySelectorAll('.remove-feature').forEach(button=>button.onclick=()=>{intakeState.answers.features=removeFeature(intakeState.answers.features,intakeState.answers.features[Number(button.dataset.featureIndex)]);renderIntake();});
   const next=document.querySelector('#intakeNext'); if(next) next.onclick=()=>{if(q.type==='features'){if(!intakeState.answers.features.length){document.querySelector('#featureInput').focus();return;}}else{intakeState.answers[q.key]=document.querySelector('#intakeAnswer').value.trim();if(!intakeState.answers[q.key]){document.querySelector('#intakeAnswer').focus();return;}}intakeState.step++;renderIntake();};
   const editFeatures=document.querySelector('#editFeatures'); if(editFeatures) editFeatures.onclick=()=>{intakeState.step=intakeQuestions.findIndex(question=>question.key==='features');renderIntake();};
-  const proceed=document.querySelector('#intakeProceed'); if(proceed) proceed.onclick=()=>{normalizeProjectInput(intakeState.answers);modal.classList.remove('open');toast.querySelector('strong').textContent='Design request queued';toast.querySelector('small').textContent='The harness will create a bounded plan for review.';toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),3800);};
+  const proceed=document.querySelector('#intakeProceed'); if(proceed) proceed.onclick=()=>{const project=normalizeProjectInput(intakeState.answers);latestArtifacts=createProjectArtifacts(project,{generatedAt:new Date().toISOString()});modal.classList.remove('open');toast.querySelector('strong').textContent='Project artifacts generated';toast.querySelector('small').textContent=`${Object.keys(latestArtifacts.artifacts).length} repository files are ready to download.`;document.querySelector('#downloadArtifacts').hidden=false;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),5200);};
 }
 function openIntake(){intakeState.step=0;renderIntake();modal.classList.add('open');}
 
@@ -50,3 +51,4 @@ function showView(name){app.innerHTML=views[name]||views.overview; breadcrumb.te
 showView('overview');
 document.querySelectorAll('.nav-item').forEach(n=>n.onclick=()=>showView(n.dataset.view));
 modal.onclick=e=>{if(e.target===modal) modal.classList.remove('open')};
+document.querySelector('#downloadArtifacts').onclick=()=>{if(!latestArtifacts)return;const blob=new Blob([JSON.stringify(latestArtifacts,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=`${latestArtifacts.slug}-artifacts.json`;link.click();URL.revokeObjectURL(url);};
